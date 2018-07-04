@@ -1,0 +1,72 @@
+#!/bin/bash 
+
+#  PBS -l nodes=8:ppn=40
+#PBS -l %%QSUB_LIST%%
+#  PBS -l walltime=01:00:00
+#PBS -l %%QSUB_WALLTIME%%
+#PBS -q S30
+#PBS -j oe
+#PBS -o %%OUTPUT_DIR%%/%%MPI_CMD_2_FILENAME%%_%%TOTAL_CORES%%.out
+#PBS -E
+#PBS -V
+
+echo "PBS_O_WORKDIR=$PBS_O_WORKDIR"
+cd ${PBS_O_WORKDIR}
+
+#SERVER=$PBS_O_HOST
+#WORKDIR=/scratch/PBS_$PBS_JOBID
+#SSH=/usr/bin/ssh
+
+#### ---- Timer: Start ----
+startTime=0
+function startTimer() {
+    startTime=`date +%s.%N`
+}
+#### ---- Timer: Stop ----
+endTime=${startTime}
+totalTime=0
+function endTimer() {
+    endTime=`date +%s.%N`
+    totalTime=$( echo "$endTime - $startTime" | bc -l )
+    echo "$totalTime"
+    printf "\nFormat follows: Seconds up to nano seconds \n"
+    printf "##Total_Runtime(seconds): %f\n" ${totalTime}
+}
+
+#### ---- Timer2: Start ----
+startTime2=0
+function startTimer2() {
+    res1=$(date +%s.%N)
+}
+#### ---- Timer2: Stop ----
+function endTimer2() {
+    res2=$(date +%s.%N)
+    dt=$(echo "$res2 - $res1" | bc)
+    dd=$(echo "$dt/86400" | bc)
+    dt2=$(echo "$dt-86400*$dd" | bc)
+    dh=$(echo "$dt2/3600" | bc)
+    dt3=$(echo "$dt2-3600*$dh" | bc)
+    dm=$(echo "$dt3/60" | bc)
+    ds=$(echo "$dt3-60*$dm" | bc)
+    printf "\nFormat follows: Days:Hours:Minutes:Seconds\n"
+    printf "##Total_Runtime(breakdown): %d:%02d:%02d:%02.4f\n" $dd $dh $dm $ds
+}
+
+#OUT_DIR=${OUT_DIR:-`pwd`/out-all}
+#mkdir -p ${OUT_DIR}
+
+cd $(dirname %%MPI_CMD%%)
+MPI_CMD=./$(basename %%MPI_CMD%%)
+
+# actual execution
+startTimer
+startTimer2
+
+#### ---- MPIRUN (mpirun) excution ----
+
+
+mpirun -np %%TOTAL_CORES%% $MPI_CMD %%MPI_OPTIONS%%
+
+endTimer
+endTimer2
+
